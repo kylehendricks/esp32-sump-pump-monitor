@@ -12,13 +12,13 @@
 #include "user_config.h"
 
 #define TV_TO_MS(tv) ((tv.tv_sec * 1000) + (tv.tv_usec / 1000))
+#define MQTT_TOPIC(suffix) MQTT_TOPIC_PREFIX suffix
 
 #define ADC_BITS    12
 #define ADC_COUNTS  (1<<ADC_BITS)
 #define PUMP_ON_RMS_THRESHOLD 5.0
 #define PUMP_MIN_RUN_TIME_MS 1000
 #define IRMS_SAMPLE_COUNT 1500
-#define MQTT_ONLINE_STATUS_TOPIC "home/basement/sump/online_status"
 
 const float ICAL = 17.75;            // calibration factor
 
@@ -26,7 +26,11 @@ int sample = 0;
 double offsetI, sqI, sumI, Irms;
 double filteredI = 0;
 mqtt_client *mqttClient = 0;
-
+struct timeval tv;
+int pumpStartTimeMs;
+int sampleCount = 0;
+double iRmsSum = 0.0;
+char jsonBuffer[48];
 
 void connected_cb(void *self, void *params)
 {
@@ -37,7 +41,7 @@ mqtt_settings settings = {
     .host = MQTT_HOST,
     .port = 1883,
     .client_id = "sump_pump_monitor",
-    .lwt_topic = MQTT_ONLINE_STATUS_TOPIC,
+    .lwt_topic = MQTT_TOPIC("online_status"),
     .lwt_msg = "offline",
     .lwt_qos = 1,
     .lwt_retain = 1,
@@ -134,14 +138,6 @@ void gpio_init(void)
     gpio_set_direction(GPIO_NUM_4, GPIO_MODE_OUTPUT);
 }
 
-struct timeval tv;
-int pumpStartTimeMs;
-
-int sampleCount = 0;
-double iRmsSum = 0.0;
-
-char jsonBuffer[48];
-
 void take_reading(void)
 {
     double iRms = calcIrms(IRMS_SAMPLE_COUNT);
@@ -169,7 +165,7 @@ void take_reading(void)
             // Crap reading, throw it out
             sampleCount = 0;
             iRmsSum = 0.0;
-            mqtt_publish(mqttClient, "home/basement/sump/state", "OFF", 3, 0, 1);
+            mqtt_publish(mqttClient, MQTT_TOPIC("state"), "OFF", 3, 0, 1);
             return;
         }
 
@@ -180,8 +176,8 @@ void take_reading(void)
             return;
         }
 
-        mqtt_publish(mqttClient, "home/basement/sump/state", "OFF", 3, 0, 1);
-        mqtt_publish(mqttClient, "home/basement/sump/run_info", jsonBuffer, count, 0, 0);
+        mqtt_publish(mqttClient, MQTT_TOPIC("state"), "OFF", 3, 0, 1);
+        mqtt_publish(mqttClient, MQTT_TOPIC("run_info"), jsonBuffer, count, 0, 0);
 
         sampleCount = 0;
         iRmsSum = 0.0;
@@ -219,7 +215,7 @@ void app_main(void)
         vTaskDelay(500 / portTICK_PERIOD_MS);
     }
 
-    mqtt_publish(mqttClient, MQTT_ONLINE_STATUS_TOPIC, "online", 6, 1, 1);
+    mqtt_publish(mqttClient, MQTT_TOPIC("online_status"), "online", 6, 1, 1);
 
     // Get some garbage readings w***REMOVED*** we first boot, clear them out
     for (int i = 0; i < 5; i++) {
@@ -227,7 +223,7 @@ void app_main(void)
         vTaskDelay(200 / portTICK_PERIOD_MS);
     }
 
-    mqtt_publish(mqttClient, "home/basement/sump/state", "OFF", 3, 0, 1);
+    mqtt_publish(mqttClient, MQTT_TOPIC("state"), "OFF", 3, 0, 1);
 
     while (true) {
         gpio_set_level(GPIO_NUM_4, 1);

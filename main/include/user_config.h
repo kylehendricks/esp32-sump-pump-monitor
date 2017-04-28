@@ -7,5 +7,6 @@
 #define WIFI_PASS "WIFI_PASS"
 
 #define MQTT_HOST "MQTT_HOST"
+#define MQTT_TOPIC_PREFIX "home/basement/sump/"
 
 #endif
