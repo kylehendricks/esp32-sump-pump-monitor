@@ -3,10 +3,10 @@
 
 /* User defines */
 
-#define WIFI_SSID "WIFI_SSID"
-#define WIFI_PASS "WIFI_PASS"
+#define WIFI_SSID "***REMOVED***"
+#define WIFI_PASS "***REMOVED***"
 
-#define MQTT_HOST "MQTT_HOST"
+#define MQTT_HOST "192.168.1.5"
 #define MQTT_TOPIC_PREFIX "home/basement/sump/"
 
 #endif
