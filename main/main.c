@@ -51,6 +51,8 @@ void connected_cb(void *self, void *params)
 
 mqtt_settings settings = {
     .host = MQTT_HOST,
+    .username = MQTT_USER,
+    .password = MQTT_PASSWORD,
     .port = 1883,
     .client_id = "pump_monitor",
     .lwt_topic = LWT_TOPIC,
